@@ -12,7 +12,7 @@
       
 # 1. Introduction
 
-The 
+Data centers represent some of the most energy-intensive infrastructures worldwide, with a significant share of their power consumption dedicated to cooling. Maintaining optimal thermal conditions is essential for ensuring server reliability and preventing overheating, yet traditional static or rule-based control strategies often lead to substantial energy inefficiencies. This project investigates the Data Center Cooling Optimization Problem through an intelligent control framework based on Reinforcement Learning, aiming to reduce energy consumption while preserving thermal safety.
 
 # 2. Agent trained with SAC
 ## 2.1 Environment description
