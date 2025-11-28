@@ -325,7 +325,7 @@ The following side-by-side comparison shows how the trained SAC agent performs a
 
 <tr><td>Comfort violation time (%)</td><td><b>3.57693</b></td><td><b>0.0</b></td></tr>
 
-<tr><td>Cumulative power demand</td><td><b>79,877,553.53</b></td><td><b>89,997,203.67</b></td></tr>
+<tr><td>Cumulative power demand</td><td><b>798,775,543.52</b></td><td><b>899,972,030.67</b></td></tr>
 
 <tr><td>Mean comfort penalty</td><td>-0.014835</td><td>0.0</td></tr>
 
