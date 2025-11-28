@@ -1,24 +1,382 @@
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
-2. [Agent trained with SAC](#2-agent-trained-with-sac)
+2. [Soft-Actor-Critic based model](#2-soft-actor-critic-based-model)
    1. [Environment description](#21-environment-description)
-   2. [Linear Reward Function](#22-linear-reward-function)
-   3. [Lagrangian Reward Function](#23-lagrangian-reward-function)
-   4. [Training](#24-training)
-   5. [Results](#25-results)
-3. [Agent trained with XYZ](#3-agent-trained-with-xyz)
+   2. [Custom Reward Function](#22-custom-reward-function)
+   3. [Training](#23-training)
+   4. [Results](#24-results)
+3. [Evolutionary Strategies](#3-evolutionary-strategies)
 
       
 # 1. Introduction
 
-Data centers represent some of the most energy-intensive infrastructures worldwide, with a significant share of their power consumption dedicated to cooling. Maintaining optimal thermal conditions is essential for ensuring server reliability and preventing overheating, yet traditional static or rule-based control strategies often lead to substantial energy inefficiencies. This project investigates the Data Center Cooling Optimization Problem through an intelligent control framework based on Reinforcement Learning, aiming to reduce energy consumption while preserving thermal safety.
+Data centers are among the most power-consuming infrastructures worldwide, and a substantial portion of their total energy usage is devoted to cooling. Server reliability depends on maintaining safe thermal conditions, yet traditional static or rule-based cooling strategies often lead to severe energy inefficiencies.   This project addresses the Data Center Cooling Optimization Problem through intelligent control techniques based on Reinforcement Learning.
 
-# 2. Agent trained with SAC
+The entire work is carried out in a Sinergym-based environment.  
+Sinergym [ref] is a Python framework that integrates EnergyPlus [ref], a building-level simulation engine, with the Gymnasium API. This makes it possible to control realistic HVAC (**Heating, Ventilation & Air Conditioning**) systems using RL agents.
+
+In simple terms, the agent learns how to reduce unnecessary energy consumption without letting temperatures exceed safe limits for IT equipment.
+
+Formally, the two main goals of the agent are:
+
+- **Maintaining thermal comfort:** keeping the internal air temperature of the datacenter within the optimal comfort range of **18°C–27°C** (ASHRAE recommended level [ref]).  
+- **Reducing energy consumption:** minimizing the total **HVAC electricity demand** compared to a static baseline (e.g., fixed setpoint at 21.5°C), while still maintaining acceptable comfort.
+
+To explore different learning paradigms, the project evaluates **two control approaches**:  
+a model-free **Soft-Actor-Critic (SAC)** agent and a gradient-free **Evolutionary Strategies (ES)** agent.  
+Both aim to find the optimal balance between comfort and energy efficiency, maximizing overall performance.
+
+# 2. Soft-Actor-Critic based model
+
+This section presents the architecture and training procedure of the SAC agent designed for datacenter cooling control. After defining the environment and the observation–action structure, we describe the custom reward function used to balance thermal comfort and energy efficiency. Finally, we detail the training configuration and report the performance metrics obtained during evaluation.
+
+The choice of SAC is not arbitrary. Prior work, including the study by **Bienmann et al.** [ref], shows that SAC provides **faster and more stable convergence** than other continuous-control RL algorithms in datacenter cooling tasks. This makes it a strong baseline for comparison with alternative methods such as ES.
+
 ## 2.1 Environment description
-## 2.2 Linear Reward Function
-## 2.3 Lagrangian Reward Function
-## 2.4 Training
-## 2.5 Results
 
-# 3. Agent trained with XYZ
+The training environment is the `Eplus-datacenter_dx-mixed-continuous-v1` model provided by Sinergym.  
+It represents a **two-zone datacenter** equipped with an HVAC system controlled by a CRAC unit (Computer Room Air Conditioner).  
+The simulation runs on **EnergyPlus**, using the **New York (USA) weather file**, which makes the task particularly challenging due to the strong seasonal variability: the climate alternates between very hot summers and extremely cold winters, forcing the cooling system to adapt to rapidly changing thermal loads.
+
+### Datacenter Structure
+The building model consists of:
+- **East Zone** – server room area with heat-generating equipment  
+- **West Zone** – second server room with similar load characteristics  
+
+Both zones contribute to the overall thermal dynamics, and the agent must ensure that neither exceeds the safe operating temperature threshold.
+
+### CRAC System and Cooling Control
+The HVAC system is driven by a **CRAC (Computer Room Air Conditioner)** unit.  
+A CRAC is a specialized cooling device designed for datacenters and network rooms. It continuously:
+- monitors temperature and humidity,  
+- removes heat generated by servers,  
+- distributes cooled air to maintain stable conditions.
+
+In this environment, the RL agent directly controls the **Cooling Return Air Setpoint**, which defines how cold the air should be before being supplied back to the server racks.  
+This variable is critical:
+
+- If the setpoint is **too low**, the system overcools the air and consumes excessive electricity.  
+- If the setpoint is **too high**, the servers may operate above the recommended thermal range, risking overheating.
+
+Therefore, adjusting this setpoint is a central part of balancing **thermal comfort vs. energy efficiency**.
+
+## 2.2 Custom Reward Function
+
+The reward function is based on the formulation proposed in the reference paper, but we omit all occupancy-related components.  
+Datacenters must operate **24/7**, and unlike office buildings there is no concept of human presence: the thermal comfort constraints are tied exclusively to the safe operating range of **IT equipment**.  
+For this reason, the reward focuses only on:
+- keeping temperatures within the recommended comfort range,
+- reducing HVAC energy consumption.
+
+### Conceptual Description
+The reward penalizes two quantities:
+1. **Energy consumption**: higher HVAC electricity demand results in a higher penalty.  
+2. **Thermal violations**: temperatures above the allowed threshold incur an exponential penalty that grows rapidly as the datacenter approaches unsafe thermal conditions.
+
+If the agent maintains temperatures inside the comfort zone while keeping energy demand low, the penalty is small (reward close to zero).  
+When temperatures exceed safe limits or the HVAC system works inefficiently, the penalty increases significantly.
+
+### Formal Definition
+For each timestep $t$, the reward has the general form:
+
+$$
+r_t = - w_E \cdot P^{(E)}_t - w_T \cdot P^{(T)}_t
+$$
+
+where:
+- $w_E$ is the weight of the energy penalty,  
+- $w_T$ is the weight of the thermal penalty,  
+- $P^{(E)}_t$ is the normalized energy penalty,  
+- $P^{(T)}_t$ is the thermal violation penalty.
+
+#### Energy Penalty
+Let $E_t$ be the HVAC electricity demand at time $t$.  
+The normalized energy penalty is:
+
+$$
+P^{(E)}_t = \frac{E_t}{\mathrm{energy\ scale}}
+$$
+
+The scaling factor ensures that the magnitude of the energy cost remains comparable to thermal costs.
+
+#### Thermal Penalty
+
+Let $T_t$ be the maximum temperature among all datacenter zones at time $t$.  
+The thermal penalty is defined in three segments:
+
+1. **Comfort Zone**
+   
+   $$T_t \leq T_{\text{high}} \qquad \Rightarrow \qquad P^{(T)}_t = 0$$
+
+2. **Warning Zone**
+
+$$
+T_{\text{high}} < T_t < T_{\text{red}}
+$$
+
+$$
+P^{(T)}_t = \exp\big(\alpha (T_t - T_{\text{high}})\big) - 1
+$$
+
+3. **Red Zone**
+
+$$
+T_t \geq T_{\text{red}}
+$$
+
+$$
+P^{(T)}_t = C_{\text{AL}} + \exp\big(\beta (T_t - T_{\text{red}})\big) - 1
+$$
+
+
+The constant $C_{\text{AL}}$ ensures continuity between the warning and red regions:
+
+$$C_{\text{AL}} = \exp\left[\alpha (T_{\text{red}} - T_{\text{high}})\right] - 1$$
+
+This formulation captures the nonlinear nature of thermal violations inside a datacenter:  
+temperatures slightly above the comfort threshold are tolerable for brief periods, but values approaching overheating become exponentially dangerous.
+### Interpretation
+- In **safe conditions**, the reward is mainly driven by energy usage.  
+- In **marginal conditions**, the warning-zone exponential term grows and encourages conservative behavior.  
+- In **unsafe conditions**, the red-zone exponential term dominates, strongly penalizing overheating to prevent equipment damage.
+
+This structure allows the agent to learn a policy that preserves **thermal safety** while minimizing **HVAC electricity demand**, which is essential for datacenter efficiency.
+
+Moreover, the smooth exponential shape of the penalty prevents the agent from being “forced” into a narrow band of setpoints.  
+Instead of collapsing onto a single safe-but-wasteful temperature, the agent is encouraged to **explore higher cooling setpoints** when appropriate, because the penalty increases gradually rather than abruptly.  
+This makes the reward function well-suited for discovering energy-efficient operating regions that would be missed with harsher or discontinuous formulations.
+
+The complete Sinergym-friendly implementation of this reward function is available in the repository inside the file **`Custom_reward.py`**.
+
+## 2.3 Training
+
+The agent is trained using a Soft-Actor-Critic (SAC) algorithm with a two-phase curriculum applied to the reward weights. The goal is to first let the agent learn a stable thermal control policy and only afterwards fine-tune energy efficiency.
+
+In **Phase 1**, comfort and energy penalties have similar weights. Because the thermal penalty grows exponentially when temperatures move away from the comfort range, the agent primarily learns **not to leave the safe operating zone** for the IT equipment. This phase stabilizes the basic cooling behaviour.
+
+In **Phase 2**, the weight of the energy term is slightly increased and the energy scaling is adjusted. At this point, the agent already knows how to keep temperatures safe, so the objective shifts towards **reducing HVAC electricity demand** while still respecting comfort constraints. This effectively acts as an **energy fine-tuning stage** on top of a safe policy.
+
+
+As shown in the following figure, due to the fast convergence of the SAC algorithm, only a small number of steps are needed to transition from Phase 1 to Phase 2:
+
+<p align="center">
+  <img src="images/TrainingCurves.png" alt="Training Curves" width="60%">
+</p>
+
+
+
+### Curriculum Learning
+
+The curriculum is implemented by dynamically updating the reward parameters during training:
+
+```python
+class CurriculumLearningCallback(BaseCallback):
+    def __init__(self, env, eval_env, phase_transition: int = 200_000, verbose: int = 1):
+        super().__init__(verbose)
+        self.env = env
+        self.eval_env = eval_env
+        self.phase_transition = phase_transition
+        self.current_phase = 1
+
+        self.phases = {
+            1: {"w_E": 1.0, "w_T": 1.0, "energy_scale": 17_500.0},  # comfort + basic control
+            2: {"w_E": 1.5, "w_T": 1.0, "energy_scale": 17_000.0},  # energy fine-tuning
+        }
+
+    def _on_step(self) -> bool:
+        if self.num_timesteps >= self.phase_transition and self.current_phase == 1:
+            self._transition_to_phase(2)
+        return True
+
+    def _transition_to_phase(self, new_phase: int) -> None:
+        self.current_phase = new_phase
+        params = self.phases[new_phase]
+        self._update_env_reward_params(self.env, params)
+        self._update_env_reward_params(self.eval_env, params)
+
+    def _update_env_reward_params(self, env, p: dict) -> None:
+        """Update reward parameters inside the environment's reward function."""
+        try:
+            reward_fn = env.get_wrapper_attr("reward_fn")
+            if reward_fn is not None:
+                reward_fn.W_energy = p["w_E"]
+                reward_fn.W_comfort = p["w_T"]
+                reward_fn.energy_scale = p["energy_scale"]
+        except Exception as e:
+            print("Warning: error while updating reward parameters:", e)
+```
+
+### Environment & Reward Setup
+
+The SAC agent is trained in the `Eplus-datacenter_dx-mixed-continuous-v1` environment using the custom exponential reward:
+
+```python
+ENV_ID = "Eplus-datacenter_dx-mixed-continuous-v1"
+
+reward_parameters = {
+    "w_E": 1.0,
+    "w_T": 1.0,
+    "energy_scale": 17_500.0,
+    "T_high": 27.0,
+    "T_red": 28.0,
+    "temp_name": ["east_zone_air_temperature", "west_zone_air_temperature"],
+    "energy_name": "HVAC_electricity_demand_rate",
+}
+
+new_action_space = gym.spaces.Box(
+    low=np.array([20.0], dtype=np.float32),
+    high=np.array([30.0], dtype=np.float32),
+    dtype=np.float32,
+)
+
+env_kwargs = dict(
+    reward=ExponentialThermalReward,
+    reward_kwargs=reward_parameters,
+    actuators=new_actuators,
+    action_space=new_action_space,
+)
+
+env = gym.make(ENV_ID, env_name=experiment_name, **env_kwargs)
+```
+
+### SAC Agent and Training Loop
+
+The control policy is implemented using the Stable-Baselines3 SAC algorithm.  
+The full training lasts **500k steps**, with the curriculum transition from Phase 1 to Phase 2 occurring at **110k steps**.
+
+The architectures of the Actor/Critics is the following:
+
+```python
+policy_kwargs = dict(
+    activation_fn=torch.nn.Tanh,
+    net_arch=dict(pi=[1024, 512], qf=[1024, 512]),
+)
+
+model = SAC(
+    "MlpPolicy",
+    env=env,
+    learning_rate=1e-4,
+    buffer_size=1_000_000,
+    learning_starts=10_000,
+    batch_size=512,
+    tau=0.002,
+    gamma=0.99,
+    train_freq=1,
+    gradient_steps=1,
+    ent_coef="auto",
+    policy_kwargs=policy_kwargs,
+    verbose=1,
+    device="cuda" if torch.cuda.is_available() else "cpu",
+)
+```
+### Training Dynamics
+
+The following figures illustrate how the agent’s behavior evolves throughout the 500k-step training process.
+
+<p align="center">
+  <img src="images/ChartSG.png" alt="Setpoint Evolution" width="60%">
+</p>
+
+**Setpoint Evolution.**  
+The evolution of the CRAC cooling setpoint shows that the agent does not collapse onto a low, energy-wasteful temperature.  
+Instead, it **explores a well-defined band of higher setpoints**, maintaining enough variability to search for efficient operating regions while still keeping temperatures under control.  
+This behavior is a direct consequence of the smooth exponential penalty, which prevents the policy from being forced into a single “safe but suboptimal” solution.
+
+<p align="center">
+  <img src="images/ChartTemp.png" alt="Temperature Violations" width="60%">
+</p>
+
+**Temperature Violations.**  
+Across training, the number and magnitude of comfort violations consistently decrease.  
+As learning progresses, the agent becomes more effective at **keeping both datacenter zones within the recommended thermal range**, sharply reducing time spent in the warning or red zones.  
+This demonstrates that the first phase of the curriculum successfully stabilizes thermal control.
+
+<p align="center">
+  <img src="images/ChartHVAC.png" alt="HVAC Energy Demand" width="60%">
+</p>
+
+**Energy Demand.**  
+Over time, the agent learns to operate the cooling system more efficiently, resulting in a **progressive reduction of HVAC electricity demand**.  
+Once comfort behavior is stabilized, the second curriculum phase encourages the agent to fine-tune energy usage, ultimately converging toward a significantly more energy-efficient control strategy.
+
+The full training implementation, including environment setup, curriculum logic, and SAC configuration, is available in the file **`2PHASEtraining.py`** in the repository.
+
+
+## 2.4 Results
+
+To assess the effectiveness of the learned policy, the final SAC agent was evaluated in a **two-year continuous simulation** stored in Sinergym’s workspace. The performance was compared against two different baselines:
+
+### 1. Realistic Conservative Baseline (21.5°C Cooling Setpoint)
+A static cooling setpoint of **21.5°C** represents a common real-world conservative policy used in datacenters to guarantee maximum thermal safety.  
+
+The following side-by-side comparison shows how the trained SAC agent performs against a conservative real-world baseline that keeps the cooling setpoint fixed at **21.5°C**, a strategy widely used for safety but extremely energy-inefficient.
+
+<p align="center">
+  <img src="images/EvalConsMtemp.png" alt="Temperature Comparison" width="48%">
+  <img src="images/EvalConsHVAC.png" alt="HVAC Energy Comparison" width="48%">
+</p>
+<br>
+
+<p align="center">
+
+<table>
+<tr><th>Metric</th><th>RL Agent</th><th>Conservative Baseline</th></tr>
+
+<tr><td>Comfort violation time (%)</td><td><b>3.57693</b></td><td><b>0.0</b></td></tr>
+
+<tr><td>Cumulative power demand</td><td><b>79,877,553.53</b></td><td><b>89,997,203.67</b></td></tr>
+
+<tr><td>Mean comfort penalty</td><td>-0.014835</td><td>0.0</td></tr>
+
+<tr><td>Mean power demand</td><td>15,197.69295</td><td>17,123.08131</td></tr>
+
+</table>
+
+</p>
+
+<br>
+
+**Temperature Behaviour.**  
+The conservative baseline maintains a very flat temperature curve around 22–23°C, reflecting overcooling and very limited adaptability.  
+The SAC agent instead shows controlled variability: it **explores higher setpoints**, allowing temperatures to fluctuate within the safe ASHRAE range without exceeding critical thresholds.  
+This demonstrates that rigidly keeping the setpoint at 21.5°C is unnecessary for thermal safety.
+
+**HVAC Electricity Demand.**  
+The energy plot shows the direct impact of this adaptability.  
+While the conservative baseline maintains high and stable cooling power, the SAC agent consistently operates at **lower HVAC electricity demand**, especially during periods of naturally high cooling load.  
+By avoiding unnecessary overcooling, the agent achieves **substantial energy savings** while still preserving thermal comfort.
+
+
+
+Overall, the SAC agent reduces total HVAC energy consumption by **about 12%** compared to the conservative 21.5°C baseline, while maintaining thermal safety with only **3.5% time outside the comfort range**.  
+This shows that strict overcooling is unnecessary: a learned policy can preserve equipment safety while substantially lowering operational costs.
+
+### 2. EnergyPlus Default Baseline (Bienmann et al.)
+Following the methodology of **Bienmann et al.**, we also compare against the baseline configuration provided internally by the EnergyPlus datacenter model.  
+This baseline typically operates at a noticeably higher cooling setpoint and therefore consumes less energy than the 21.5°C conservative strategy, but it allows more temperature variability.
+
+<br>
+
+<p align="center">
+
+<table>
+<tr><th>Metric</th><th>Value</th></tr>
+
+<tr><td>Comfort violation time (%)</td><td><b>0</b></td></tr>
+
+<tr><td>Cumulative power demand</td><td><b>881,268,825.6090112</b></td></tr>
+
+<tr><td>Mean comfort penalty</td><td>0</td></tr>
+
+<tr><td>Mean power demand</td><td>16,767.22969632244</td></tr>
+
+</table>
+
+</p>
+
+<br>
+
+
+Even in this more favorable comparison, the RL policy still achieves **meaningful energy reductions** (around 10%) while keeping temperatures well within the recommended ASHRAE envelope. This mirrors the findings of Bienmann et al., even with less number of actuators and training episodes.
+# 3. Evolutionary Strategies
