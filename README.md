@@ -363,11 +363,11 @@ This baseline typically operates at a noticeably higher cooling setpoint and the
 <table>
 <tr><th>Metric</th><th>Value</th></tr>
 
-<tr><td>Comfort violation time (%)</td><td><b>0</b></td></tr>
+<tr><td>Comfort violation time (%)</td><td><b>0.0</b></td></tr>
 
-<tr><td>Cumulative power demand</td><td><b>881,268,825.6090112</b></td></tr>
+<tr><td>Cumulative power demand</td><td><b>881,268,825.61</b></td></tr>
 
-<tr><td>Mean comfort penalty</td><td>0</td></tr>
+<tr><td>Mean comfort penalty</td><td>0.0</td></tr>
 
 <tr><td>Mean power demand</td><td>16,767.22969632244</td></tr>
 
