@@ -155,29 +155,9 @@ episodes = 80
 experiment_date = datetime.today().strftime("%Y-%m-%d_%H%M")
 experiment_name = f"CURRICULUM_SAC_{experiment_date}"
 
-# Actuators controlled by the RL agent
-new_actuators = {
-    "Cooling_Setpoint_RL": (
-        "Schedule:Compact",
-        "Schedule Value",
-        "Cooling Setpoints",
-    ),
-    "East_Zone_Fan_Flow": (
-        "Fan",
-        "Fan Air Mass Flow Rate",
-        "EAST ZONE SUPPLY FAN",
-    ),
-    "West_Zone_Fan_Flow": (
-        "Fan",
-        "Fan Air Mass Flow Rate",
-        "WEST ZONE SUPPLY FAN",
-    ),
-}
-
-# Continuous action space: [cooling setpoint, east fan flow, west fan flow]
 new_action_space = gym.spaces.Box(
-    low=np.array([20.0, 1.0, 1.0], dtype=np.float32),
-    high=np.array([30.0, 7.0, 7.0], dtype=np.float32),
+    low=np.array([20.0], dtype=np.float32),
+    high=np.array([30.0], dtype=np.float32),
     dtype=np.float32,
 )
 
@@ -310,7 +290,6 @@ steps_per_episode = env.get_wrapper_attr("timestep_per_episode")
 total_timesteps = min(episodes * steps_per_episode, 500_000)
 
 print("\n" + "=" * 70)
-print("STARTING CURRICULUM TRAINING")
 print(f"Total timesteps: {total_timesteps:,}")
 print("=" * 70 + "\n")
 
@@ -333,3 +312,4 @@ finally:
     env.close()
     eval_env.close()
     print("Training finished.")
+
