@@ -233,7 +233,6 @@ new_action_space = gym.spaces.Box(
 env_kwargs = dict(
     reward=ExponentialThermalReward,
     reward_kwargs=reward_parameters,
-    actuators=new_actuators,
     action_space=new_action_space,
 )
 
