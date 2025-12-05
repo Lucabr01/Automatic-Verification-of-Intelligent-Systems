@@ -500,10 +500,14 @@ class HVACPolicy(nn.Module):
         return torch.tanh(o)
 ```
 
-#### Training Breakthrough 
+### Training Breakthrough 
 
 We initially attempted to train the policy network from scratch, using fully randomized weights. However, due to the exploratory nature of Evolutionary Strategies, the early-phase convergence toward maintaining thermal comfort was extremely slow. The algorithm required many generations before producing even minimally stabilizing behaviours.
-To accelerate learning and avoid wasting computational budget on trivial discoveries, we initialized the ES policy with pretrained weights obtained from a model specifically trained to remain within the comfort zone. This warm-start significally improved the early optimisation phase, allowing ES to focus on meaningful energy–comfort trade-offs rather than rediscovering basic safe-control behaviour. This pretrained model achieves an average of 90% time in the comfort zone while consuming around 2% more energy than the baseline (EnergyPlus’s static controller), making it a suitable starting point for ES optimization.
+To accelerate learning and avoid wasting computational budget on trivial discoveries, we initialized the ES policy with pretrained weights obtained from a model specifically trained to remain within the comfort zone. This warm-start significally improved the early optimisation phase, allowing ES to focus on meaningful energy–comfort trade-offs rather than rediscovering basic safe-control behaviour. This model, trained on a very few number of episodes, achieves an average of 90% time in the comfort zone while consuming around 2% more energy than the baseline (EnergyPlus’s static controller), making it a suitable starting point for ES optimization.
 
+The repository also includes the pretrained models used for initialization, available as:
 
+- `sac_warmup_new_ranges.zip` – full SAC model trained for comfort-zone stability
+- `sac_actor_weights_RESTRICTED.pt` – extracted actor weights used to initialize the ES policy
 
+These files provide all the pretrained parameters required to reproduce the warm-start configuration.
