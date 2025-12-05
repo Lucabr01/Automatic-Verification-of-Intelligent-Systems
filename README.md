@@ -478,7 +478,7 @@ The ES fitness differs from the SAC reward in several ways:
 This episodic, constraint-aware formulation is well suited for datacenter HVAC control, where long-term energy efficiency must coexist with strict thermal safety.
 The full implementation is available in the repository in `RewardEnergy.py`.
 
-## 3.1 Architecture and Training Design
+## 3.2 Architecture and Training Design
 
 
 
