@@ -382,7 +382,7 @@ Even in this more favorable comparison, the RL policy still achieves **meaningfu
 
 # 3. Evolutionary Strategies
 
-This section introduces the architecture and training procedure of the Evolutionary-Strategies-based controller. Training is carried out in the same environment used for the SAC experiments, but the optimization objective differs substantially: we adopt a reward function that does not depend on per-timestep feedback and instead evaluates performance over entire episodes. This choice aligns naturally with the episodic nature of HVAC efficiency and thermal-stability assessment.
+This section introduces the architecture and training procedure of the Evolutionary-Strategies-based controller. Training is carried out in the same environment used for the SAC experiments (using 3 actuators), but the optimization objective differs substantially: we adopt a reward function that does not depend on per-timestep feedback and instead evaluates performance over entire episodes. This choice aligns naturally with the episodic nature of HVAC efficiency and thermal-stability assessment.
 
 To the best of our knowledge, no prior work has applied Evolutionary Strategies to datacenter HVAC control or cooling optimization. Despite exhibiting slower convergence compared to gradient-based reinforcement learning, ES proves capable of discovering robust policies. Our results show that, when coupled with a carefully designed episodic reward, the method can produce a reliable controller that balances thermal comfort and energy consumption.
 
@@ -479,6 +479,31 @@ This episodic, constraint-aware formulation is well suited for datacenter HVAC c
 The full implementation is available in the repository in `RewardEnergy.py`.
 
 ## 3.2 Architecture and Training Design
+
+The policy network adopts a lightweight multilayer architecture inspired by common designs used in Evolutionary Strategies research. Its structure is the following:
+
+```python
+class HVACPolicy(nn.Module):
+    def __init__(self, obs_dim=37, action_dim=3):
+        super().__init__()
+        # Compact architecture for parameter efficiency in ES
+        self.fc1 = nn.Linear(obs_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc_out = nn.Linear(64, action_dim)
+
+    def forward(self, x):
+        # Tanh activation used throughout to keep signals bounded
+        h = torch.tanh(self.fc1(x))
+        h = torch.tanh(self.fc2(h))
+        o = self.fc_out(h)
+        # Final tanh ensures actions are in [-1, 1] range
+        return torch.tanh(o)
+```
+
+#### Training Breakthrough 
+
+We initially attempted to train the policy network from scratch, using fully randomized weights. However, due to the exploratory nature of Evolutionary Strategies, the early-phase convergence toward maintaining thermal comfort was extremely slow. The algorithm required many generations before producing even minimally stabilizing behaviours.
+To accelerate learning and avoid wasting computational budget on trivial discoveries, we initialized the ES policy with pretrained weights obtained from a model specifically trained to remain within the comfort zone. This warm-start significally improved the early optimisation phase, allowing ES to focus on meaningful energy–comfort trade-offs rather than rediscovering basic safe-control behaviour. This pretrained model achieves an average of 90% time in the comfort zone while consuming around 2% more energy than the baseline (EnergyPlus’s static controller), making it a suitable starting point for ES optimization.
 
 
 
