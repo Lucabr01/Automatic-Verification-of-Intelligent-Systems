@@ -7,7 +7,7 @@
    3. [Training](#23-training)
    4. [Results](#24-results)
 3. [Evolutionary Strategies](#3-evolutionary-strategies)
-   1. [Fitness Function Design](#22-fitness-function-design)
+   1. [Fitness Function Design](#31-fitness-function-design)
       
 # 1. Introduction
 
