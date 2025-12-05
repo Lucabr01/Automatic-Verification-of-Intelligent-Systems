@@ -387,156 +387,93 @@ To the best of our knowledge, no prior work has applied Evolutionary Strategies 
 
 ## 3.1 Fitness Function Design
 
-The reward function for Evolutionary Strategies is fundamentally different from the per-timestep formulation used in SAC. Rather than providing immediate feedback at each step, ES evaluates an entire episode and assigns a single fitness score that summarizes both thermal performance and energy efficiency across the full simulation horizon.
-This episodic approach is better aligned with datacenter operations: what matters is not instantaneous HVAC response, but sustained thermal safety over hours or days combined with cumulative energy consumption. A controller that occasionally allows brief temperature excursions but achieves significant energy savings may be preferable to one that maintains strict comfort at all times but wastes electricity.
-Conceptual Description
-The fitness function aggregates two main objectives over an episode of length NN
-N timesteps:
+The reward function for Evolutionary Strategies (ES) is fundamentally different from the per-timestep formulation used in SAC. Instead of providing immediate feedback at each simulation step, ES evaluates the entire episode and assigns a single fitness score summarizing both thermal performance and energy efficiency across the full horizon.
 
+This episodic formulation matches datacenter operations: the objective is sustained thermal safety over hours or days, combined with cumulative energy consumption. A controller that occasionally allows brief temperature excursions but saves substantial energy may be preferable to one that maintains perfect comfort but wastes electricity.
 
-Thermal compliance: maintaining temperatures within safe operating ranges, with graduated penalties for violations of increasing severity.
-Energy saving: reducing total HVAC electricity consumption relative to a baseline (either a reference policy or a fixed energy budget).
+### 1. Conceptual Description
 
-The final fitness is a weighted combination:
-Ftotal=γT⋅Ftemp+γE⋅FenergyF_{\text{total}} = \gamma_T \cdot F_{\text{temp}} + \gamma_E \cdot F_{\text{energy}}Ftotal​=γT​⋅Ftemp​+γE​⋅Fenergy​
-where γT\gamma_T
-γT​ and γE\gamma_E
-γE​ are scaling weights that balance the two objectives. In our experiments, we prioritize energy efficiency by setting γE>γT\gamma_E > \gamma_T
-γE​>γT​, reflecting the fact that datacenter HVAC systems must save energy while meeting thermal constraints—not the other way around.
+Over an episode of length $N$ timesteps, the fitness aggregates:
 
+- **Thermal compliance**: staying within safe temperature bounds, with graduated penalties for increasingly severe violations.  
+- **Energy saving**: reducing total HVAC electricity consumption relative to a baseline.
 
-Thermal Fitness (FtempF_{\text{temp}}
-Ftemp​)
+The final fitness is:
 
-The thermal component evaluates how well the controller keeps temperatures inside the comfort zone and penalizes excursions into progressively dangerous regions.
-Zone Classification
-At each timestep tt
-t, let TtT_t
-Tt​ be the maximum temperature among all datacenter zones. We classify TtT_t
-Tt​ into one of four categories:
+$$
+F_{\text{total}} = \gamma_T F_{\text{temp}} + \gamma_E F_{\text{energy}}
+$$
 
+where $\gamma_T$ and $\gamma_E$ weigh thermal and energy components.
+In our experiments we set $\gamma_E > \gamma_T$, reflecting the practical focus on energy efficiency subject to thermal safety.
 
-Comfort Zone: Tmin⁡≤Tt≤Tmax⁡T_{\min} \leq T_t \leq T_{\max}
-Tmin​≤Tt​≤Tmax​ (target operating range)
+---
 
-Zone 1 (Soft): Tmax⁡<Tt≤TwarningT_{\max} < T_t \leq T_{\text{warning}}
-Tmax​<Tt​≤Twarning​ (tolerable brief excursions)
+### 2. Energy Fitness ($F_{\text{energy}}$)
 
-Zone 2 (Moderate): Twarning<Tt≤TdangerT_{\text{warning}} < T_t \leq T_{\text{danger}}
-Twarning​<Tt​≤Tdanger​ (approaching unsafe conditions)
+Energy efficiency is calculated as the fractional saving relative to a baseline. Let $E_t$ be the power consumption at timestep $t$:
 
-Zone 3 (Critical): Tt>TdangerT_t > T_{\text{danger}}
-Tt​>Tdanger​ (risk of equipment damage)
+$$
+F_{\text{energy}} = 1 - \frac{\sum_{t=1}^{N} E_t}{E_{\text{baseline}}}
+$$
 
+Where $E_{\text{baseline}}$ is the total reference energy consumption (derived from either a static reference policy or a dynamic baseline).
 
-In our configuration:
+---
 
-Tmin⁡=18.0 °CT_{\min} = 18.0\,°\text{C}
-Tmin​=18.0°C, Tmax⁡=26.5 °CT_{\max} = 26.5\,°\text{C}
-Tmax​=26.5°C (comfort bounds)
+### 3. Thermal Fitness ($F_{\text{temp}}$)
 
-Twarning=27.5 °CT_{\text{warning}} = 27.5\,°\text{C}
-Twarning​=27.5°C
-Tdanger=28.0 °CT_{\text{danger}} = 28.0\,°\text{C}
-Tdanger​=28.0°C
+The thermal component penalizes discomfort time, severity of violations, and peak temperatures. It is defined as:
 
-We compute the fraction of time spent in each zone:
-f1=1N∑t=1N1[Tt∈Zone 1],f2=1N∑t=1N1[Tt∈Zone 2],f3=1N∑t=1N1[Tt∈Zone 3]f_1 = \frac{1}{N} \sum_{t=1}^{N} \mathbb{1}[T_t \in \text{Zone 1}], \quad f_2 = \frac{1}{N} \sum_{t=1}^{N} \mathbb{1}[T_t \in \text{Zone 2}], \quad f_3 = \frac{1}{N} \sum_{t=1}^{N} \mathbb{1}[T_t \in \text{Zone 3}]f1​=N1​t=1∑N​1[Tt​∈Zone 1],f2​=N1​t=1∑N​1[Tt​∈Zone 2],f3​=N1​t=1∑N​1[Tt​∈Zone 3]
-A zone severity score is then calculated as:
-Szone=w1⋅f1+w2⋅f2+w3⋅f3S_{\text{zone}} = w_1 \cdot f_1 + w_2 \cdot f_2 + w_3 \cdot f_3Szone​=w1​⋅f1​+w2​⋅f2​+w3​⋅f3​
-with weights w1=1.0w_1 = 1.0
-w1​=1.0, w2=3.0w_2 = 3.0
-w2​=3.0, w3=9.0w_3 = 9.0
-w3​=9.0, chosen to reflect escalating danger.
+$$
+F_{\text{temp}} = -(1 - C) - k_{s} \cdot S_{\text{zone}} - k_{p} \cdot \Delta T_{\text{peak}} - k_{c} \cdot \text{gap}_{c}
+$$
 
-Comfort Rate and Constraint
-The comfort rate CC
-C measures the fraction of timesteps where temperatures remain inside the safe range:
+Each term is calculated as follows:
 
-C=1N∑t=1N1[Tmin⁡≤Tt≤Tmax⁡]C = \frac{1}{N} \sum_{t=1}^{N} \mathbb{1}[T_{\min} \leq T_t \leq T_{\max}]C=N1​t=1∑N​1[Tmin​≤Tt​≤Tmax​]
-We impose a soft constraint C≥Cmin⁡C \geq C_{\min}
-C≥Cmin​ (with Cmin⁡=0.93C_{\min} = 0.93
-Cmin​=0.93 in our experiments). If C<Cmin⁡C < C_{\min}
-C<Cmin​, the fitness includes an additional penalty:
+#### A. Comfort Rate ($C$)
+The fraction of the episode where the maximum zone temperature $T_t$ remains within the target range $[18.0, 26.5]^\circ\text{C}$:
 
-constraint_gap=max⁡(0,Cmin⁡−C)\text{constraint\_gap} = \max(0, C_{\min} - C)constraint_gap=max(0,Cmin​−C)
-This ensures that policies violating thermal safety too frequently are strongly discouraged, even if they achieve high energy savings.
-Graduated Peak Penalty
-To further penalize extreme temperature outliers, we compute the maximum temperature across the episode:
-Tmax⁡episode=max⁡t=1,…,NTtT_{\max}^{\text{episode}} = \max_{t=1,\ldots,N} T_tTmaxepisode​=t=1,…,Nmax​Tt​
-If Tmax⁡episode>Tmax⁡T_{\max}^{\text{episode}} > T_{\max}
-Tmaxepisode​>Tmax​, we apply a
-graduated penalty that grows smoothly with severity:
+$$
+C = \frac{1}{N} \sum_{t=1}^{N} \mathbb{1}[18.0 \le T_t \le 26.5]
+$$
 
-Soft Violations (Tmax⁡<T≤TwarningT_{\max} < T \leq T_{\text{warning}}
-Tmax​<T≤Twarning​):
+#### B. Zone Severity Score ($S_{\text{zone}}$)
+Timesteps where temperatures exceed the comfort range are classified into severity zones. Let $f_i$ be the fraction of time spent in Zone $i$:
 
+$$
+S_{\text{zone}} = w_1 \cdot f_1 + w_2 \cdot f_2 + w_3 \cdot f_3
+$$
 
-Pgrad=1.0⋅(T−Tmax⁡)P_{\text{grad}} = 1.0 \cdot (T - T_{\max})Pgrad​=1.0⋅(T−Tmax​)
+The zones and weights are configured as:
+* **Zone 1 (Soft, $w_1=1.0$):** $26.5 < T_t \le 27.5$
+* **Zone 2 (Moderate, $w_2=3.0$):** $27.5 < T_t \le 28.0$
+* **Zone 3 (Critical, $w_3=9.0$):** $T_t > 28.0$
 
-Warning Violations (Twarning<T≤TdangerT_{\text{warning}} < T \leq T_{\text{danger}}
-Twarning​<T≤Tdanger​):
+#### C. Peak Penalty ($\Delta T_{\text{peak}}$)
+A linear penalty applied to the maximum temperature observed during the entire episode ($T_{\max}^{\text{ep}}$) if it exceeds the comfort bound:
 
+$$
+\Delta T_{\text{peak}} = \max(0, T_{\max}^{\text{ep}} - 26.5)
+$$
 
-Pgrad=1.0⋅(Twarning−Tmax⁡)+10.0⋅(T−Twarning)P_{\text{grad}} = 1.0 \cdot (T_{\text{warning}} - T_{\max}) + 10.0 \cdot (T - T_{\text{warning}})Pgrad​=1.0⋅(Twarning​−Tmax​)+10.0⋅(T−Twarning​)
+#### D. Constraint Gap ($\text{gap}_{c}$)
+To enforce safety, we impose a soft constraint $C_{\min} = 0.93$. If the comfort rate falls below this threshold, a heavy penalty is applied:
 
-Critical Violations (T>TdangerT > T_{\text{danger}}
-T>Tdanger​):
+$$
+\text{gap}_{c} = \max(0, C_{\min} - C)
+$$
 
+The constraint scaling factor is set to **$k_c = 10.0$**, ensuring that policies violating the minimum comfort rate are strongly penalized.
 
-Pgrad=1.0⋅(Twarning−Tmax⁡)+10.0⋅(Tdanger−Twarning)+5.0⋅(T−Tdanger)2P_{\text{grad}} = 1.0 \cdot (T_{\text{warning}} - T_{\max}) + 10.0 \cdot (T_{\text{danger}} - T_{\text{warning}}) + 5.0 \cdot (T - T_{\text{danger}})^2Pgrad​=1.0⋅(Twarning​−Tmax​)+10.0⋅(Tdanger​−Twarning​)+5.0⋅(T−Tdanger​)2
-The quadratic term in the critical zone ensures that extreme outliers are punished severely, while the smooth transitions between zones prevent abrupt "cliffs" in the fitness landscape that could hinder ES convergence.
-Final Thermal Fitness
-The thermal fitness combines all components:
-Ftemp=−(1−C)−0.1⋅Szone−0.05⋅max⁡(0,Tmax⁡episode−Tmax⁡)−kconstraint⋅constraint_gapF_{\text{temp}} = -(1 - C) - 0.1 \cdot S_{\text{zone}} - 0.05 \cdot \max(0, T_{\max}^{\text{episode}} - T_{\max}) - k_{\text{constraint}} \cdot \text{constraint\_gap}Ftemp​=−(1−C)−0.1⋅Szone​−0.05⋅max(0,Tmaxepisode​−Tmax​)−kconstraint​⋅constraint_gap
-where kconstraint=10.0k_{\text{constraint}} = 10.0
-kconstraint​=10.0 scales the soft-constraint penalty. The negative signs ensure that better thermal performance yields higher (less negative) fitness.
+## Interpretation
 
+The ES fitness differs from the SAC reward in several ways:
 
-Energy Fitness (FenergyF_{\text{energy}}
-Fenergy​)
+- **Episodic evaluation:** ES scores entire trajectories, enabling long-horizon trade-offs (e.g., brief spikes vs. large savings).  
+- **Graduated penalties:** zone-based severity improves stability and avoids hard thresholds.  
+- **Energy-driven optimization:** energy reduction is the primary objective, with thermal safety acting as a soft constraint.  
+- **Baseline-relative scoring:** ES measures performance relative to a baseline, making results comparable across seasons, weather, and facility settings.
 
-The energy component measures how much the controller reduces HVAC electricity consumption relative to a baseline.
-Let EtE_t
-Et​ denote the HVAC power demand at timestep tt
-t. The
-total episode energy is:
-Eagent=∑t=1NEtE_{\text{agent}} = \sum_{t=1}^{N} E_tEagent​=t=1∑N​Et​
-We compare this to a baseline EbaselineE_{\text{baseline}}
-Ebaseline​, which can be either:
-
-
-A reference value (e.g., energy consumed by a rule-based controller),
-A dynamic baseline collected from observations during the episode.
-
-The energy saving ratio is:
-Esaving=1−EagentEbaseline\text{Esaving} = 1 - \frac{E_{\text{agent}}}{E_{\text{baseline}}}Esaving=1−Ebaseline​Eagent​​
-Then:
-Fenergy=EsavingF_{\text{energy}} = \text{Esaving}Fenergy​=Esaving
-A positive FenergyF_{\text{energy}}
-Fenergy​ indicates energy reduction relative to the baseline; a negative value means the agent consumed more energy.
-
-
-Combined Fitness
-The final fitness score is:
-Ftotal=γT⋅Ftemp+γE⋅FenergyF_{\text{total}} = \gamma_T \cdot F_{\text{temp}} + \gamma_E \cdot F_{\text{energy}}Ftotal​=γT​⋅Ftemp​+γE​⋅Fenergy​
-In our experiments, we set γT=1.0\gamma_T = 1.0
-γT​=1.0 and γE=3.0\gamma_E = 3.0
-γE​=3.0, prioritizing energy efficiency while still penalizing thermal violations. This weighting reflects the operational reality of datacenters: thermal safety is non-negotiable, but within that constraint, minimizing energy cost is the primary optimization goal.
-
-
-Interpretation
-The ES fitness function differs from the SAC reward in several key ways:
-
-Episodic evaluation: instead of per-step feedback, ES sees the full episode trajectory before assigning credit. This allows it to assess trade-offs that span longer time horizons (e.g., accepting brief temperature spikes to avoid wasteful overcooling).
-Graduated penalties: the zone-based severity scoring and smooth graduated penalties create a fitness landscape without sharp discontinuities. This helps ES discover robust policies rather than getting stuck near arbitrary thresholds.
-Energy-driven optimization: by setting γE>γT\gamma_E > \gamma_T
-γE​>γT​, we explicitly guide the search toward energy-efficient solutions. The thermal component acts as a
-constraint (via Cmin⁡C_{\min}
-Cmin​) rather than the primary objective.
-
-Baseline comparison: unlike SAC, which penalizes raw energy consumption, ES evaluates relative performance. This makes the fitness more interpretable and allows fair comparison across different weather conditions or facility configurations.
-
-This episodic, constraint-aware formulation is well-suited to datacenter HVAC control, where the goal is to minimize total operating cost (dominated by electricity) while guaranteeing thermal safety over extended periods. The complete implementation is available in the repository inside the file RewardEnergy.py.
-
-
+This episodic, constraint-aware formulation is well suited for datacenter HVAC control, where long-term energy efficiency must coexist with strict thermal safety.
+The full implementation is available in the repository in `RewardEnergy.py`.
