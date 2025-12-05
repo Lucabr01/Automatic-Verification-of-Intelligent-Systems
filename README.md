@@ -471,7 +471,6 @@ The constraint scaling factor is set to **$k_c = 10.0$**, ensuring that policies
 The ES fitness differs from the SAC reward in several ways:
 
 - **Episodic evaluation:** ES scores entire trajectories, enabling long-horizon trade-offs (e.g., brief spikes vs. large savings).  
-- **Graduated penalties:** zone-based severity improves stability and avoids hard thresholds.  
 - **Energy-driven optimization:** energy reduction is the primary objective, with thermal safety acting as a soft constraint.  
 - **Baseline-relative scoring:** ES measures performance relative to a baseline, making results comparable across seasons, weather, and facility settings.
 
