@@ -8,6 +8,7 @@
    4. [Results](#24-results)
 3. [Evolutionary Strategies](#3-evolutionary-strategies)
    1. [Fitness Function Design](#31-fitness-function-design)
+   2. [Architecture and Training Design](#32-architecture-and-training-design)
       
 # 1. Introduction
 
@@ -409,7 +410,7 @@ In our experiments we set $\gamma_E > \gamma_T$, reflecting the practical focus 
 
 ---
 
-### 2. Energy Fitness ($F_{\text{energy}}$)
+###  Energy Fitness ($F_{\text{energy}}$)
 
 Energy efficiency is calculated as the fractional saving relative to a baseline. Let $E_t$ be the power consumption at timestep $t$:
 
@@ -421,7 +422,7 @@ Where $E_{\text{baseline}}$ is the total reference energy consumption (derived f
 
 ---
 
-### 3. Thermal Fitness ($F_{\text{temp}}$)
+###  Thermal Fitness ($F_{\text{temp}}$)
 
 The thermal component penalizes discomfort time, severity of violations, and peak temperatures. It is defined as:
 
@@ -431,14 +432,14 @@ $$
 
 Each term is calculated as follows:
 
-#### A. Comfort Rate ($C$)
+####  Comfort Rate ($C$)
 The fraction of the episode where the maximum zone temperature $T_t$ remains within the target range $[18.0, 26.5]^\circ\text{C}$:
 
 $$
 C = \frac{1}{N} \sum_{t=1}^{N} \mathbb{1}[18.0 \le T_t \le 26.5]
 $$
 
-#### B. Zone Severity Score ($S_{\text{zone}}$)
+####  Zone Severity Score ($S_{\text{zone}}$)
 Timesteps where temperatures exceed the comfort range are classified into severity zones. Let $f_i$ be the fraction of time spent in Zone $i$:
 
 $$
@@ -450,14 +451,14 @@ The zones and weights are configured as:
 * **Zone 2 (Moderate, $w_2=3.0$):** $27.5 < T_t \le 28.0$
 * **Zone 3 (Critical, $w_3=9.0$):** $T_t > 28.0$
 
-#### C. Peak Penalty ($\Delta T_{\text{peak}}$)
+####  Peak Penalty ($\Delta T_{\text{peak}}$)
 A linear penalty applied to the maximum temperature observed during the entire episode ($T_{\max}^{\text{ep}}$) if it exceeds the comfort bound:
 
 $$
 \Delta T_{\text{peak}} = \max(0, T_{\max}^{\text{ep}} - 26.5)
 $$
 
-#### D. Constraint Gap ($\text{gap}_{c}$)
+####  Constraint Gap ($\text{gap}_{c}$)
 To enforce safety, we impose a soft constraint $C_{\min} = 0.93$. If the comfort rate falls below this threshold, a heavy penalty is applied:
 
 $$
@@ -476,3 +477,8 @@ The ES fitness differs from the SAC reward in several ways:
 
 This episodic, constraint-aware formulation is well suited for datacenter HVAC control, where long-term energy efficiency must coexist with strict thermal safety.
 The full implementation is available in the repository in `RewardEnergy.py`.
+
+## 3.1 Architecture and Training Design
+
+
+
