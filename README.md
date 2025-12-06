@@ -210,10 +210,10 @@ class CurriculumLearningCallback(BaseCallback):
 
 ### Environment & Reward Setup
 
-The SAC agent is trained in the `Eplus-datacenter_dx-mixed-continuous-v1` environment using the custom exponential reward:
+The SAC agent is trained in the `Eplus-datacenter_dx-mixed-continuous-stochastic-v1` environment using the custom exponential reward:
 
 ```python
-ENV_ID = "Eplus-datacenter_dx-mixed-continuous-v1"
+ENV_ID = "Eplus-datacenter_dx-mixed-continuous-stochastic-v1"
 
 reward_parameters = {
     "w_E": 1.0,
