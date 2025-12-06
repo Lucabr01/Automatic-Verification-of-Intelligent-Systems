@@ -138,7 +138,7 @@ else:
 # ============================================================================
 # ENVIRONMENT CONFIGURATION
 # ============================================================================
-ENV_ID = "Eplus-datacenter_dx-mixed-continuous-v1"
+ENV_ID = "Eplus-datacenter_dx-mixed-continuous-stochastic-v1"
 
 # Initial reward parameters (Phase 1)
 reward_parameters = {
@@ -312,4 +312,5 @@ finally:
     env.close()
     eval_env.close()
     print("Training finished.")
+
 
