@@ -577,7 +577,7 @@ FOR iteration = 1 TO max_iterations DO:
     # Update parameters via Adam
     θ = optimizer.step(θ, gradient, lr=α)
 
-    # G. ADAPTIVE SIGMA (Optional)
+    # G. ADAPTIVE SIGMA
     # Increase exploration if variance is low, otherwise decay
     IF population_variance < threshold:
         σ = σ * 1.05
