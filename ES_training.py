@@ -10,7 +10,7 @@ import torch
 import wandb
 
 import sinergym
-from RewardEnergy import ESThermalEnergyReward, rank_based_utilities
+from Custom_reward import ESThermalEnergyReward, rank_based_utilities
 from model import HVACPolicy
 
 from sinergym.utils.wrappers import (
@@ -961,4 +961,5 @@ if __name__ == "__main__":
         baseline_env.close()
         if wandb.run is not None:
             wandb.finish()
+
             print("\n✓ WandB run closed.")
