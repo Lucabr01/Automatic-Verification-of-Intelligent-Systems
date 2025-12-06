@@ -476,7 +476,7 @@ The ES fitness differs from the SAC reward in several ways:
 - **Baseline-relative scoring:** ES measures performance relative to a baseline, making results comparable across seasons, weather, and facility settings.
 
 This episodic, constraint-aware formulation is well suited for datacenter HVAC control, where long-term energy efficiency must coexist with strict thermal safety.
-The full implementation is available in the repository in `RewardEnergy.py`.
+The full implementation is available in the repository in `Custom_reward.py`.
 
 ## 3.2 Architecture and Training Design
 
@@ -511,3 +511,82 @@ The repository also includes the pretrained models used for initialization, avai
 - `sac_actor_weights_RESTRICTED.pt` – extracted actor weights used to initialize the ES policy
 
 These files provide all the pretrained parameters required to reproduce the warm-start configuration.
+
+#### Trining Loop
+
+The training process follow this logic (full code available in the repository as `ES_training.py`:)
+
+```python
+# 1. INITIALIZATION
+LOAD pretrained_weights (from SAC) into Policy(θ)
+INITIALIZE:
+    θ (current parameters)
+    σ (noise standard deviation)
+    α (learning rate)
+    optimizer (Adam)
+    population_size (N)
+
+# 2. MAIN TRAINING LOOP
+FOR iteration = 1 TO max_iterations DO:
+
+    # A. ENVIRONMENT SYNCHRONIZATION
+    # Generate a unique seed to ensure weather/stochastic consistency 
+    # between the baseline and all agent candidates for this iteration.
+    current_seed = Random_Integer()
+
+    # B. DYNAMIC BASELINE COMPUTATION
+    # Run the default EnergyPlus controller to get a reference energy consumption
+    # for the specific weather conditions of 'current_seed'.
+    baseline_env.reset(seed=current_seed)
+    baseline_energy = Run_Default_Controller_Episode()
+    
+    # C. MIRRORED SAMPLING (Perturbations)
+    # Generate N/2 Gaussian noise vectors (ε)
+    noise_vectors = Generate_Gaussian_Noise(N / 2)
+    candidates = []
+    
+    # Create antithetic pairs (θ + σε, θ - σε) to reduce gradient variance
+    FOR ε IN noise_vectors DO:
+        candidates.append(θ + σ * ε)  # Positive perturbation
+        candidates.append(θ - σ * ε)  # Negative perturbation
+
+    # D. PARALLEL EVALUATION
+    # Evaluate all candidates in parallel using the SAME seed and baseline
+    fitness_scores = PARALLEL_MAP(candidate_θ IN candidates) DO:
+        worker_env.reset(seed=current_seed)
+        episode_reward = 0
+        
+        WHILE episode_not_done DO:
+            action = candidate_θ(observation)
+            state, reward, done, info = worker_env.step(action)
+            episode_reward += reward
+        
+        # Fitness combines comfort + energy savings vs dynamic baseline
+        fitness = Calculate_Fitness(episode_reward, info, baseline_energy)
+        RETURN fitness
+
+    # E. RANK-BASED FITNESS SHAPING
+    # Convert raw fitness scores to normalized ranks [-0.5, 0.5]
+    # This makes the algorithm robust to outliers in reward scaling.
+    utilities = Compute_Rank_Utilities(fitness_scores)
+
+    # F. GRADIENT ESTIMATION & UPDATE
+    # Approximate gradient: sum(utility * noise) / (N * σ)
+    gradient = Estimate_Gradient(utilities, noise_vectors)
+    
+    # Update parameters via Adam
+    θ = optimizer.step(θ, gradient, lr=α)
+
+    # G. ADAPTIVE SIGMA (Optional)
+    # Increase exploration if variance is low, otherwise decay
+    IF population_variance < threshold:
+        σ = σ * 1.05
+    ELSE:
+        σ = σ * decay_rate
+
+    # H. CHECKPOINTING
+    IF mean(fitness_scores) > global_best:
+        Save_Model("best_so_far.pt")
+
+END FOR
+```
