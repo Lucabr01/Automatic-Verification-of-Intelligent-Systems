@@ -619,6 +619,6 @@ We evaluated our model against the default EnergyPlus baselines, following the m
   <img src="images/ESvsBcom.png" alt="Comfort Violations" width="50%">
 </p>
 
-The complete evaluation results are available in the repository under progress.csv. Across the 10 episodes, our agent achieves an average energy saving of 14.21% with a standard deviation of 1.33%, while exceeding the comfort range for only 3–4% of the time per year. The highest energy saving occurs in episode 9, reaching 14.83%.
+The complete evaluation results are available in the repository under `progress.csv`. Across the 10 episodes, our agent achieves an average energy saving of 14.21% with a standard deviation of 1.33%, while exceeding the comfort range for only 3–4% of the time per year. The highest energy saving occurs in episode 9, reaching 14.83%.
 
 These results confirm the effectiveness of Evolutionary Strategies in this domain, providing competitive performance despite the fact that this approach has not previously been explored in related work.
