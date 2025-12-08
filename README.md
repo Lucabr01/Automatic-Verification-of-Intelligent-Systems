@@ -10,6 +10,7 @@
    1. [Fitness Function Design](#31-fitness-function-design)
    2. [Architecture and Training Design](#32-architecture-and-training-design)
    3. [Results](#33-results)
+4. [Conclusions](#1-conclusions)
       
 # 1. Introduction
 
@@ -622,3 +623,5 @@ We evaluated our model against the default EnergyPlus baselines, following the m
 The complete evaluation results are available in the repository under `progress.csv`. Across the 10 episodes, our agent achieves an average energy saving of 14.21% with a standard deviation of 1.33%, while exceeding the comfort range for only 3–4% of the time per year. The highest energy saving occurs in episode 9, reaching 14.83%.
 
 These results confirm the effectiveness of Evolutionary Strategies in this domain, providing competitive performance despite the fact that this approach has not previously been explored in related work.
+
+# 4. Conclusions
