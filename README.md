@@ -9,6 +9,7 @@
 3. [Evolutionary Strategies](#3-evolutionary-strategies)
    1. [Fitness Function Design](#31-fitness-function-design)
    2. [Architecture and Training Design](#32-architecture-and-training-design)
+   3. [Results](#33-results)
       
 # 1. Introduction
 
@@ -600,3 +601,12 @@ The model was trained for 200 episodes, and each iteration’s outcome was evalu
   <img src="images/ESTrainES.png" alt="Energy Saving Evolution" width="48%">
 </p>
 <br>
+
+Each training iteration used a population of 32 workers, and the overall process achieved an estimated energy saving of 15% while maintaining comfort for at least 96% of the time. The training ran for approximately 36 hours. 
+
+It is important to note that the algorithm did not reach full convergence, meaning that further improvements are entirely possible, especially through a more refined tuning of the sigma hyperparameter. We stopped the training due to the considerable computational resources required.
+
+## 3.3 Results
+
+
+
