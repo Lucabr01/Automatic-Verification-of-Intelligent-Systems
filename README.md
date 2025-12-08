@@ -292,13 +292,6 @@ Across training, the number and magnitude of comfort violations consistently dec
 As learning progresses, the agent becomes more effective at **keeping both datacenter zones within the recommended thermal range**, sharply reducing time spent in the warning or red zones.  
 This demonstrates that the first phase of the curriculum successfully stabilizes thermal control.
 
-<p align="center">
-  <img src="images/ChartHVAC.png" alt="HVAC Energy Demand" width="60%">
-</p>
-
-**Energy Demand.**  
-Over time, the agent learns to operate the cooling system more efficiently, resulting in a **progressive reduction of HVAC electricity demand**.  
-Once comfort behavior is stabilized, the second curriculum phase encourages the agent to fine-tune energy usage, ultimately converging toward a significantly more energy-efficient control strategy.
 
 The full training implementation, including environment setup, curriculum logic, and SAC configuration, is available in the file **`2PHASEtraining.py`** in the repository.
 
@@ -595,6 +588,15 @@ Since the energy part of the fitness function is estimated on a baseline and the
 
 During the preliminary experimental phase, we observed high volatility in the population's performance: within the same iteration, some candidates achieved excellent energy savings while others triggered severe penalty conditions. To prevent these massive magnitude differences from destabilizing the learning process, we adopted Rank-Based Fitness Shaping. This technique normalizes the rewards based on the order of performance rather than raw values, ensuring consistent convergence even in the presence of extreme outliers.
 
-#### Training Evolution
+### Training Evolution
 
+The model was trained for 200 episodes, and each iteration’s outcome was evaluated through the mean fitness of its population, which served as the main indicator of training progress. The following images show the model’s evolution over 50 training episodes. It is clear that both the population’s mean fitness and the energy savings exhibit a steady upward trend, while the peak temperature consistently decreases. This behavior confirms the effectiveness of the approach and the robustness of our designed fitness function.
 
+<p align="center">
+  <img src="images/EsTrainMean.png" alt="ES Mean Evolution" width="50%">
+</p>
+<p align="center">
+  <img src="images/ESTrainTM.png" alt="Temp Max Evolution" width="48%">
+  <img src="images/ESTrainES.png" alt="Energy Saving Evolution" width="48%">
+</p>
+<br>
