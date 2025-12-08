@@ -373,7 +373,7 @@ This baseline typically operates at a noticeably higher cooling setpoint and the
 <br>
 
 
-Even in this more favorable comparison, the RL policy still achieves **meaningful energy reductions** (around 10%) while keeping temperatures well within the recommended ASHRAE envelope. This mirrors the findings of Bienmann et al., even with less number of actuators and training episodes.
+Even in this more favorable comparison, the RL policy still achieves **meaningful energy reductions** (around 10%) while keeping temperatures well within the recommended ASHRAE envelope. This mirrors the findings of Bienmann et al., even with fewer actuators and training episodes.
 
 # 3. Evolutionary Strategies
 
@@ -498,7 +498,7 @@ class HVACPolicy(nn.Module):
 ### Training Breakthrough 
 
 We initially attempted to train the policy network from scratch, using fully randomized weights. However, due to the exploratory nature of Evolutionary Strategies, the early-phase convergence toward maintaining thermal comfort was extremely slow. The algorithm required many generations before producing even minimally stabilizing behaviours.
-To accelerate learning and avoid wasting computational budget on trivial discoveries, we initialized the ES policy with pretrained weights obtained from a model specifically trained to remain within the comfort zone. This warm-start significally improved the early optimisation phase, allowing ES to focus on meaningful energy–comfort trade-offs rather than rediscovering basic safe-control behaviour. This model, trained on a very few number of episodes, achieves an average of 90% time in the comfort zone while consuming around 2% more energy than the baseline (EnergyPlus’s static controller), making it a suitable starting point for ES optimization.
+To accelerate learning and avoid wasting computational budget on trivial discoveries, we initialized the ES policy with pretrained weights obtained from a model specifically trained to remain within the comfort zone. This warm-start significantly improved the early optimisation phase, allowing ES to focus on meaningful energy–comfort trade-offs rather than rediscovering basic safe-control behaviour. This model, trained on a very few number of episodes, achieves an average of 90% time in the comfort zone while consuming around 2% more energy than the baseline (EnergyPlus’s static controller), making it a suitable starting point for ES optimization.
 
 The repository also includes the pretrained models used for initialization, available as:
 
@@ -507,7 +507,7 @@ The repository also includes the pretrained models used for initialization, avai
 
 These files provide all the pretrained parameters required to reproduce the warm-start configuration.
 
-#### Trining Loop
+#### Training Loop
 
 The training process follow this logic (full code available in the repository as `ES_training.py`) :
 
@@ -612,7 +612,7 @@ It is important to note that the algorithm did not reach full convergence, meani
 We evaluated our model against the default EnergyPlus baselines, following the methodology commonly used in related work. The following images present a 10-year evaluation, where each year was simulated with different stochastic conditions (i.e., a different random seed).
 
 <p align="center">
-  <img src="images/ES_vs_BASE.png" alt="Energy Comparision" width="48%">
+  <img src="images/ES_vs_BASE.png" alt="Energy Comparison" width="48%">
   <img src="images/ESvsBmea.png" alt="Energy Mean Consumption" width="48%">
 </p>
 <br>
