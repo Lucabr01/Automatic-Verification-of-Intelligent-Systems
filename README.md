@@ -594,3 +594,7 @@ END FOR
 Since the energy part of the fitness function is estimated on a baseline and the environment is stochastic, points A and B ensure that at every episode the candidate agent and the baseline are exposed to the exact same weather and load conditions, thereby isolating the policy's actual performance from random environmental fluctuations.
 
 During the preliminary experimental phase, we observed high volatility in the population's performance: within the same iteration, some candidates achieved excellent energy savings while others triggered severe penalty conditions. To prevent these massive magnitude differences from destabilizing the learning process, we adopted Rank-Based Fitness Shaping. This technique normalizes the rewards based on the order of performance rather than raw values, ensuring consistent convergence even in the presence of extreme outliers.
+
+#### Training Evolution
+
+
