@@ -608,5 +608,15 @@ It is important to note that the algorithm did not reach full convergence, meani
 
 ## 3.3 Results
 
+We evaluated our model against the default EnergyPlus baselines, following the methodology commonly used in related work. The following images present a 10-year evaluation, where each year was simulated with different stochastic conditions (i.e., a different random seed).
+
+<p align="center">
+  <img src="images/ES_vs_BASE.png" alt="Energy Comparision" width="48%">
+  <img src="images/ESvsBmea.png" alt="Energy Mean Consumption" width="48%">
+</p>
+<br>
+<p align="center">
+  <img src="images/ESvsBcom.png" alt="Comfort Violations" width="50%">
+</p>
 
 
