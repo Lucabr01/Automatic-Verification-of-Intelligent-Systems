@@ -377,7 +377,7 @@ Even in this more favorable comparison, the RL policy still achieves **meaningfu
 
 # 3. Evolutionary Strategies
 
-This section introduces the architecture and training procedure of the Evolutionary-Strategies-based controller. Training is carried out in the same environment used for the SAC experiments (using 3 actuators), but the optimization objective differs substantially: we adopt a reward function that does not depend on per-timestep feedback and instead evaluates performance over entire episodes. This choice aligns naturally with the episodic nature of HVAC efficiency and thermal-stability assessment.
+This section introduces the architecture and training procedure of the Evolutionary-Strategies-based [[Salimans et al., 2017]](https://arxiv.org/abs/1703.03864) controller. Training is carried out in the same environment used for the SAC experiments (using 3 actuators), but the optimization objective differs substantially: we adopt a reward function that does not depend on per-timestep feedback and instead evaluates performance over entire episodes. This choice aligns naturally with the episodic nature of HVAC efficiency and thermal-stability assessment.
 
 To the best of our knowledge, no prior work has applied Evolutionary Strategies to datacenter HVAC control or cooling optimization. Despite exhibiting slower convergence compared to gradient-based reinforcement learning, ES proves capable of discovering robust policies. Our results show that, when coupled with a carefully designed episodic reward, the method can produce a reliable controller that balances thermal comfort and energy consumption.
 
@@ -635,5 +635,7 @@ Overall, this project highlights the potential of reinforcement learning and evo
 --
 
 ## References
-- Jiménez-Raboso, J., Campoy-Nieves, A., Manjavacas-Lucas, A., Gómez-Romero, J., & Molina-Solana, M. Sinergym. https://ugr-sail.github.io/sinergym/compilation/main/index.html
-- U.S. Department of Energy. EnergyPlus. https://energyplus.net/
+-  Jiménez-Raboso, J., Campoy-Nieves, A., Manjavacas-Lucas, A., Gómez-Romero, J., & Molina-Solana, M. Sinergym. https://ugr-sail.github.io/sinergym/compilation/main/index.html
+-  U.S. Department of Energy. EnergyPlus. https://energyplus.net/
+-  Salimans, T., Ho, J., Chen, X., Sidor, S., & Sutskever, I. (2017). Evolution Strategies as a Scalable Alternative to Reinforcement Learning. *arXiv:1703.03864*. https://arxiv.org/abs/1703.03864
+
