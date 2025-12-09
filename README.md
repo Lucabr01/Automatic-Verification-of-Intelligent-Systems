@@ -66,7 +66,7 @@ Therefore, adjusting this setpoint is a central part of balancing **thermal comf
 
 ## 2.2 Custom Reward Function
 
-The reward function is based on the formulation proposed in the reference paper, but we omit all occupancy-related components.  
+The reward function is based on the formulation proposed in [[Togashi, 2025]](https://doi.org/10.1016/j.enbuild.2025.116439), but we omit all occupancy-related components.  
 Datacenters must operate **24/7**, and unlike office buildings there is no concept of human presence: the thermal comfort constraints are tied exclusively to the safe operating range of **IT equipment**.  
 For this reason, the reward focuses only on:
 - keeping temperatures within the recommended comfort range,
@@ -348,7 +348,7 @@ Overall, the SAC agent reduces total HVAC energy consumption by **about 12%** co
 This shows that strict overcooling is unnecessary: a learned policy can preserve equipment safety while substantially lowering operational costs.
 
 ### 2. EnergyPlus Default Baseline (Bienmann et al.)
-Following the methodology of **Bienmann et al.**, we also compare against the baseline configuration provided internally by the EnergyPlus datacenter model.  
+Following the methodology of **Bienmann et al.** [[Biemann et al., 2021]](https://doi.org/10.1016/j.enbuild.2020.110225), we also compare against the baseline configuration provided internally by the EnergyPlus datacenter model.  
 This baseline typically operates at a noticeably higher cooling setpoint and therefore consumes less energy than the 21.5°C conservative strategy, but it allows more temperature variability.
 
 <br>
@@ -638,4 +638,7 @@ Overall, this project highlights the potential of reinforcement learning and evo
 -  Jiménez-Raboso, J., Campoy-Nieves, A., Manjavacas-Lucas, A., Gómez-Romero, J., & Molina-Solana, M. Sinergym. https://ugr-sail.github.io/sinergym/compilation/main/index.html
 -  U.S. Department of Energy. EnergyPlus. https://energyplus.net/
 -  Salimans, T., Ho, J., Chen, X., Sidor, S., & Sutskever, I. (2017). Evolution Strategies as a Scalable Alternative to Reinforcement Learning. *arXiv:1703.03864*. https://arxiv.org/abs/1703.03864
+-  Biemann, M., Scheller, F., Liu, X., & Huang, L. (2021). Experimental evaluation of model-free reinforcement learning algorithms for continuous HVAC control. Energy and Buildings, 226, 110225 - https://doi.org/10.1016/j.enbuild.2020.110225
+-  Togashi, E. (2025). Reward function design in reinforcement learning for HVAC Control: A review of thermal comfort and energy efficiency Trade-offs. Energy & Buildings, 348, 116439 - https://doi.org/10.1016/j.enbuild.2025.116439
+
 
