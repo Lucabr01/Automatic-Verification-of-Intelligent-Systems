@@ -14,10 +14,10 @@
       
 # 1. Introduction
 
-Data centers are among the most power-consuming infrastructures worldwide, and a substantial portion of their total energy usage is devoted to cooling. Server reliability depends on maintaining safe thermal conditions, yet traditional static or rule-based cooling strategies often lead to severe energy inefficiencies.   This project addresses the Data Center Cooling Optimization Problem through intelligent control techniques based on Reinforcement Learning.
+Data centers are among the most power-consuming infrastructures worldwide, and a substantial portion of their total energy usage is devoted to cooling. Server reliability depends on maintaining safe thermal conditions, yet traditional static or rule-based cooling strategies often lead to severe energy inefficiencies. This project addresses the Data Center Cooling Optimization Problem through intelligent control techniques based on Reinforcement Learning.
 
 The entire work is carried out in a Sinergym-based environment.  
-Sinergym [ref] is a Python framework that integrates EnergyPlus [ref], a building-level simulation engine, with the Gymnasium API. This makes it possible to control realistic HVAC (**Heating, Ventilation & Air Conditioning**) systems using RL agents.
+Sinergym[[Jiménez-Raboso et al.]](https://ugr-sail.github.io/sinergym/compilation/main/index.html) is a Python framework that integrates EnergyPlus[[DOE]](https://energyplus.net/), a building-level simulation engine, with the Gymnasium API. This makes it possible to control realistic HVAC (**Heating, Ventilation & Air Conditioning**) systems using RL agents.
 
 In simple terms, the agent learns how to reduce unnecessary energy consumption without letting temperatures exceed safe limits for IT equipment.
 
@@ -631,3 +631,9 @@ In conclusion the SAC agent demonstrated rapid and stable convergence, thanks in
 The Evolutionary Strategies approach, on the other hand, introduced a novel angle to the problem. By optimizing an episodic fitness function that balances long-term thermal stability with cumulative energy savings, ES was able to discover viable and efficient control policies despite relying on no gradient information. The warm-start initialization using a comfort-stabilizing SAC model proved essential, greatly accelerating early training and allowing ES to focus on high-level energy–comfort trade-offs. Although training required significant computational time, the resulting controller consistently achieved more than 14% energy savings with comfort compliance above 96%. These findings demonstrate that ES, despite its slower convergence, is a promising alternative for scenarios where gradients are unreliable, costly to compute, or entirely unavailable.
 
 Overall, this project highlights the potential of reinforcement learning and evolutionary computation in reducing the energy footprint of modern datacenters while preserving thermal safety. Both approaches suggest that static cooling policies are unnecessarily conservative and that data-driven control can unlock significant efficiency gains.
+
+--
+
+## References
+- Jiménez-Raboso, J., Campoy-Nieves, A., Manjavacas-Lucas, A., Gómez-Romero, J., & Molina-Solana, M. Sinergym. https://ugr-sail.github.io/sinergym/compilation/main/index.html
+- U.S. Department of Energy. EnergyPlus. https://energyplus.net/
